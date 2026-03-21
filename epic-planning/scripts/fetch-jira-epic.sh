@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fetch Jira epic/issue snapshot: best-effort XML + full REST JSON.
+# Fetch Jira epic/issue snapshot as JSON (REST API v3).
 # Requires ~/.atlassian_config (JIRA_BASE_URL, JIRA_EMAIL, JIRA_API_TOKEN).
 # Usage: fetch-jira-epic.sh ISSUE_KEY OUTPUT_DIR
 set -euo pipefail
@@ -29,23 +29,6 @@ BASE="${JIRA_BASE_URL%/}"
 
 mkdir -p "$OUT"
 
-TMP="$(mktemp)"
-HTTP_CODE=""
-HTTP_CODE=$(curl -sS -o "$TMP" -w "%{http_code}" -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
-  "${BASE}/si/jira.issueviews:issue-xml/${KEY}/${KEY}.xml" || true)
-
-XML_OK=0
-if [[ "$HTTP_CODE" == "200" ]] && head -c 2048 "$TMP" | grep -qiE '<\?xml[[:space:]]+version|<rss[[:space:]]+version|<item[[:space:]]+|jira-issue|/issue>'; then
-  mv "$TMP" "$OUT/epic-reference.xml"
-  XML_OK=1
-else
-  rm -f "$TMP"
-  {
-    echo "<!-- epic-reference.xml: XML issue view not available (HTTP ${HTTP_CODE:-n/a} or non-XML body). -->"
-    echo "<!-- Use epic-reference.json as the canonical export. -->"
-  } > "$OUT/epic-reference.xml"
-fi
-
 # Broad field set + comments (ADF); expand changelog for history
 FIELDS="summary,description,status,priority,assignee,reporter,comment,issuelinks,subtasks,labels,issuetype,parent,created,updated,fixVersions,components,creator"
 JSON_URL="${BASE}/rest/api/3/issue/${KEY}?expand=changelog,renderedFields&fields=${FIELDS}"
@@ -55,4 +38,3 @@ curl -sS -f -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" "$JSON_URL" \
 mv "${OUT}/epic-reference.json.tmp" "${OUT}/epic-reference.json"
 
 echo "Wrote ${OUT}/epic-reference.json"
-echo "Wrote ${OUT}/epic-reference.xml (xml_ok=${XML_OK})"

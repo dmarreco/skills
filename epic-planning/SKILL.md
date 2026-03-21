@@ -21,7 +21,7 @@ description: >-
 | Location | Content |
 |----------|---------|
 | `<workspace>/epic-planning/README.md` | Short pointer; **no** templates or scripts here—only per-epic subfolders and this README. |
-| `<workspace>/epic-planning/<JIRAKEY-ShortName>/` | `epic-reference.xml`, `epic-reference.json`, `decisions.md`, `PLAN.md` |
+| `<workspace>/epic-planning/<JIRAKEY-ShortName>/` | `epic-reference.json` (Jira REST snapshot), `decisions.md`, `PLAN.md` |
 | `~/.cursor/skills/epic-planning/` | `SKILL.md`, `scripts/fetch-jira-epic.sh`, `templates/*.template.md` (generic only) |
 
 Never create per-epic data under `~/.cursor/skills/` (except generic templates and scripts).
@@ -34,7 +34,7 @@ Never create per-epic data under `~/.cursor/skills/` (except generic templates a
 ## Bootstrap a new epic folder
 
 1. Create the directory under `epic-planning/`.
-2. Run the fetch script (requires network permission and `~/.atlassian_config`):
+2. Run the fetch script (writes **`epic-reference.json`** only; requires network permission and `~/.atlassian_config`):
 
 ```bash
 chmod +x ~/.cursor/skills/epic-planning/scripts/fetch-jira-epic.sh   # once

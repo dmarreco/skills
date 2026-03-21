@@ -56,5 +56,5 @@ Examples: PoC, high-level design, low-level design, spike.
 
 ## References
 
-- `epic-reference.json` / `epic-reference.xml` in this folder
+- `epic-reference.json` in this folder (Jira REST snapshot)
 - Jira: `{browse URL placeholder}`
