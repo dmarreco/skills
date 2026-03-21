@@ -20,10 +20,11 @@ description: >-
 
 | Location | Content |
 |----------|---------|
-| `<workspace>/epic-planning/` | README, templates, optional `scripts/` copy |
+| `<workspace>/epic-planning/README.md` | Short pointer; **no** templates or scripts here—only per-epic subfolders and this README. |
 | `<workspace>/epic-planning/<JIRAKEY-ShortName>/` | `epic-reference.xml`, `epic-reference.json`, `decisions.md`, `PLAN.md` |
+| `~/.cursor/skills/epic-planning/` | `SKILL.md`, `scripts/fetch-jira-epic.sh`, `templates/*.template.md` (generic only) |
 
-Never create per-epic data under `~/.cursor/skills/`.
+Never create per-epic data under `~/.cursor/skills/` (except generic templates and scripts).
 
 ## Folder naming
 
@@ -40,11 +41,9 @@ chmod +x ~/.cursor/skills/epic-planning/scripts/fetch-jira-epic.sh   # once
 ~/.cursor/skills/epic-planning/scripts/fetch-jira-epic.sh "<EPIC-KEY>" "<workspace>/epic-planning/<JIRAKEY-ShortName>"
 ```
 
-Or use the workspace copy: `epic-planning/scripts/fetch-jira-epic.sh` with the same arguments.
-
-3. Copy templates into the epic folder (adjust titles only inside the workspace files):
-   - From `epic-planning/templates/PLAN.template.md` → `PLAN.md`
-   - From `epic-planning/templates/DECISIONS.template.md` → `decisions.md`
+3. Copy templates from the skill into the epic folder (adjust titles only inside the workspace files):
+   - `~/.cursor/skills/epic-planning/templates/PLAN.template.md` → `PLAN.md`
+   - `~/.cursor/skills/epic-planning/templates/DECISIONS.template.md` → `decisions.md`
 
 4. **PLAN.md** must include:
    - **Specification:** problem, goals, non-goals, constraints.
@@ -65,7 +64,7 @@ Epic children may require a **JQL** search (`/rest/api/3/search`) with the proje
 
 ## Git
 
-- Changes under `epic-planning/` in the **workspace** repo: commit with the product repo.
+- Changes under `epic-planning/<epic>/` in the **workspace** repo: commit with the product repo.
 - Changes to **`~/.cursor/skills/epic-planning/`**: commit in the **public skills** repository — **generic** edits only.
 
 ## Related skills
