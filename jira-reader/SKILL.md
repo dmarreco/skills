@@ -93,6 +93,21 @@ Use a short table plus narrative:
 
 Then **Issue links** (inward/outward summaries + keys) and **description** as readable markdown.
 
+## Fetch epic/issue snapshot to file
+
+Exports a full issue (broad field set + comments + changelog) as pretty-printed
+JSON. Used by the **epic-planning** agent to bootstrap `epic-reference.json`.
+
+```bash
+~/.cursor/skills/jira-reader/scripts/fetch-jira-epic.sh ISSUE_KEY OUTPUT_DIR
+# Example:
+~/.cursor/skills/jira-reader/scripts/fetch-jira-epic.sh ELR-32817 ./ELR-32817-My-Epic
+# → writes OUTPUT_DIR/epic-reference.json
+```
+
+The script creates `OUTPUT_DIR` if it doesn't exist. Requires
+`full_network` permission.
+
 ## Limitations
 
 - **Read-only** — no POST/PUT/DELETE to Jira.
