@@ -74,9 +74,10 @@ Epic children may require a **JQL** search (`/rest/api/3/search`) with the proje
 
 After **every** edit to `PLAN.md` or `decisions.md` under `<workspace>/epic-planning/`:
 
-1. **Commit locally** in the workspace repository (same repo as the product code). **Do not push** unless the user explicitly asks.
-2. Commit message format: `epic-planning(<EPIC-KEY>): <short description>` (use the epic’s Jira key from the folder name or PLAN header).
-3. If the workspace is not a git repo or git fails, say so and skip; do not force-init without user consent.
+1. **Commit locally**. **Do not push** unless the user explicitly asks.
+2. **Where to run `git`:** If the workspace root is a Git repo, commit from the root (paths under `epic-planning/`). If **`epic-planning/` is its own nested Git repository** (common when the product workspace is not versioned), run `git add` / `git commit` from **`epic-planning/`** instead.
+3. Commit message format: `epic-planning(<EPIC-KEY>): <short description>` (use the epic’s Jira key from the folder name or PLAN header).
+4. If neither the workspace nor `epic-planning/` is a git repo, or `git` fails, say so and skip; do not `git init` without user consent.
 
 ## Related skills
 
