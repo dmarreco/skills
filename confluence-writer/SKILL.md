@@ -26,6 +26,14 @@ Same file as confluence-reader: `~/.atlassian_config` with:
 - `CONFLUENCE_URL` — e.g. `https://avalara.atlassian.net/wiki`
 - `JIRA_EMAIL`
 - `JIRA_API_TOKEN`
+- `CONFLUENCE_SPACE_KEY` — user's personal space key (e.g. `~7120203c...`)
+- `CONFLUENCE_DOMAIN` — e.g. `avalara.atlassian.net` (used by md2conf)
+- `CONFLUENCE_PATH` — typically `/wiki/` (used by md2conf)
+- `CONFLUENCE_USER_NAME` — same value as `JIRA_EMAIL` (md2conf alias)
+- `CONFLUENCE_API_KEY` — same value as `JIRA_API_TOKEN` (md2conf alias)
+
+All user-specific values (space key, domain, email, token) live in
+`~/.atlassian_config` only — **never hardcode** them in skill files or scripts.
 
 Always `source ~/.atlassian_config` before `curl`. Never print or log the token.
 
@@ -52,13 +60,13 @@ python3 -m md2conf --version 2>/dev/null || \
 Use **network** permission when calling Atlassian (e.g. `required_permissions: ["full_network"]`).
 md2conf and curl both make HTTPS calls to Confluence REST API.
 
-## Personal space
+## Default space and parent
 
-- **Space key:** `~7120203cde98c85a0744c99291801a2e40f932`
-- **Homepage ID:** `638522164553`
+- **Space key:** read from `$CONFLUENCE_SPACE_KEY` in `~/.atlassian_config`.
+- **Homepage ID:** discoverable via `GET /api/v2/spaces?keys=$CONFLUENCE_SPACE_KEY` → `homepageId` field. Scripts fall back to `$CONFLUENCE_HOMEPAGE_ID` if set.
 
-When creating pages, default to this personal space and use the homepage as
-the parent unless the user specifies otherwise.
+When creating pages, default to the user's personal space and homepage as the
+parent unless the user specifies otherwise.
 
 ---
 
@@ -66,16 +74,10 @@ the parent unless the user specifies otherwise.
 
 ### Environment variables
 
-md2conf uses its own env var names. Map from `~/.atlassian_config`:
-
-```bash
-source ~/.atlassian_config
-export CONFLUENCE_DOMAIN="avalara.atlassian.net"
-export CONFLUENCE_PATH="/wiki/"
-export CONFLUENCE_USER_NAME="${JIRA_EMAIL}"
-export CONFLUENCE_API_KEY="${JIRA_API_TOKEN}"
-export CONFLUENCE_SPACE_KEY="~7120203cde98c85a0744c99291801a2e40f932"
-```
+md2conf reads its own env var names (`CONFLUENCE_DOMAIN`, `CONFLUENCE_PATH`,
+`CONFLUENCE_USER_NAME`, `CONFLUENCE_API_KEY`, `CONFLUENCE_SPACE_KEY`). These
+should all be set in `~/.atlassian_config` alongside the Jira/Confluence-reader
+vars. After `source ~/.atlassian_config`, md2conf picks them up automatically.
 
 ### Create / update a page
 
@@ -89,9 +91,8 @@ or by a **page-id comment** in the file (explicit, preferred after first publish
 **First publish (new page):**
 
 ```bash
+source ~/.atlassian_config
 python3 -m md2conf PLAN.md \
-  -d avalara.atlassian.net \
-  -s "~7120203cde98c85a0744c99291801a2e40f932" \
   -r ROOT_PAGE_ID \
   --no-generated-by \
   --ignore-invalid-url \
@@ -110,9 +111,8 @@ into the source `.md` file. Subsequent runs update the same page.
 **Subsequent update:**
 
 ```bash
+source ~/.atlassian_config
 python3 -m md2conf PLAN.md \
-  -d avalara.atlassian.net \
-  -s "~7120203cde98c85a0744c99291801a2e40f932" \
   --no-generated-by \
   --ignore-invalid-url \
   --heading-anchors

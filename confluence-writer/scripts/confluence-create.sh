@@ -27,8 +27,14 @@ fi
 
 TITLE="$1"
 BODY_FILE="$2"
-SPACE_KEY="~7120203cde98c85a0744c99291801a2e40f932"
-PARENT_ID="${3:-638522164553}"
+SPACE_KEY="${CONFLUENCE_SPACE_KEY:?CONFLUENCE_SPACE_KEY must be set in ${CONFIG}}"
+PARENT_ID="${3:-${CONFLUENCE_HOMEPAGE_ID:-}}"
+
+if [[ -z "$PARENT_ID" ]]; then
+  echo "No parent page ID provided and CONFLUENCE_HOMEPAGE_ID not set in ${CONFIG}." >&2
+  echo "Usage: $0 \"Page Title\" BODY_FILE PARENT_PAGE_ID" >&2
+  exit 1
+fi
 
 if [[ ! -f "$BODY_FILE" ]]; then
   echo "Body file not found: ${BODY_FILE}" >&2

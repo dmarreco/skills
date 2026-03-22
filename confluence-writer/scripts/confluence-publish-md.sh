@@ -38,11 +38,13 @@ if [[ ! -f "$MD_FILE" ]]; then
   exit 1
 fi
 
-export CONFLUENCE_DOMAIN="avalara.atlassian.net"
-export CONFLUENCE_PATH="/wiki/"
-export CONFLUENCE_USER_NAME="${JIRA_EMAIL}"
-export CONFLUENCE_API_KEY="${JIRA_API_TOKEN}"
-export CONFLUENCE_SPACE_KEY="${CONFLUENCE_SPACE_KEY:-~7120203cde98c85a0744c99291801a2e40f932}"
+for var in CONFLUENCE_DOMAIN CONFLUENCE_SPACE_KEY CONFLUENCE_USER_NAME CONFLUENCE_API_KEY; do
+  if [[ -z "${!var:-}" ]]; then
+    echo "${var} must be set in ${CONFIG}" >&2
+    exit 2
+  fi
+done
+export CONFLUENCE_DOMAIN CONFLUENCE_PATH CONFLUENCE_USER_NAME CONFLUENCE_API_KEY CONFLUENCE_SPACE_KEY
 
 # Find a working python3 with md2conf
 PYTHON=""
