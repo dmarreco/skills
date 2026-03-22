@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Create a Confluence page in the user's personal space.
-# Usage: confluence-create.sh "Title" BODY_FILE [PARENT_PAGE_ID]
+# Usage: confluence-create.sh "Title" BODY_FILE [PARENT_PAGE_ID] [--labels l1,l2] [--json]
 # Requires ~/.atlassian_config with CONFLUENCE_URL, JIRA_EMAIL, JIRA_API_TOKEN.
 set -euo pipefail
 
@@ -20,15 +20,27 @@ for var in CONFLUENCE_URL JIRA_EMAIL JIRA_API_TOKEN; do
   fi
 done
 
-if [[ $# -lt 2 ]]; then
-  echo "Usage: $0 \"Page Title\" BODY_FILE [PARENT_PAGE_ID]" >&2
+LABELS=""
+JSON_OUTPUT=false
+POSITIONAL=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --labels) LABELS="$2"; shift 2 ;;
+    --json)   JSON_OUTPUT=true; shift ;;
+    *)        POSITIONAL+=("$1"); shift ;;
+  esac
+done
+
+if [[ ${#POSITIONAL[@]} -lt 2 ]]; then
+  echo "Usage: $0 \"Page Title\" BODY_FILE [PARENT_PAGE_ID] [--labels l1,l2] [--json]" >&2
   exit 1
 fi
 
-TITLE="$1"
-BODY_FILE="$2"
+TITLE="${POSITIONAL[0]}"
+BODY_FILE="${POSITIONAL[1]}"
 SPACE_KEY="${CONFLUENCE_SPACE_KEY:?CONFLUENCE_SPACE_KEY must be set in ${CONFIG}}"
-PARENT_ID="${3:-${CONFLUENCE_HOMEPAGE_ID:-}}"
+PARENT_ID="${POSITIONAL[2]:-${CONFLUENCE_HOMEPAGE_ID:-}}"
 
 if [[ -z "$PARENT_ID" ]]; then
   echo "No parent page ID provided and CONFLUENCE_HOMEPAGE_ID not set in ${CONFIG}." >&2
@@ -44,18 +56,24 @@ fi
 BODY=$(<"$BODY_FILE")
 BASE="${CONFLUENCE_URL%/}"
 
+LABELS_JSON="[]"
+if [[ -n "$LABELS" ]]; then
+  LABELS_JSON=$(echo "$LABELS" | tr ',' '\n' | jq -R '{prefix:"global",name:.}' | jq -s '.')
+fi
+
 PAYLOAD=$(jq -n \
   --arg title "$TITLE" \
   --arg key "$SPACE_KEY" \
   --arg pid "$PARENT_ID" \
   --arg body "$BODY" \
+  --argjson labels "$LABELS_JSON" \
   '{
     type: "page",
     title: $title,
     space: { key: $key },
     ancestors: [{ id: $pid }],
     body: { storage: { value: $body, representation: "storage" } }
-  }')
+  } + (if ($labels | length) > 0 then { metadata: { labels: $labels } } else {} end)')
 
 RESPONSE=$(curl -sS -f -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
   -X POST "${BASE}/rest/api/content" \
@@ -64,8 +82,15 @@ RESPONSE=$(curl -sS -f -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
 
 PAGE_ID=$(echo "$RESPONSE" | jq -r '.id')
 PAGE_TITLE=$(echo "$RESPONSE" | jq -r '.title')
-PAGE_URL="${BASE}/spaces/${SPACE_KEY}/pages/${PAGE_ID}"
+PAGE_URL="${BASE}$(echo "$RESPONSE" | jq -r '._links.webui')"
 
 echo "Created page: ${PAGE_TITLE} (ID: ${PAGE_ID})"
 echo "URL: ${PAGE_URL}"
-echo "$RESPONSE"
+echo ""
+echo "Pin in your Markdown file:"
+echo "<!-- confluence-page-id: ${PAGE_ID} -->"
+
+if [[ "$JSON_OUTPUT" == true ]]; then
+  echo ""
+  echo "$RESPONSE"
+fi

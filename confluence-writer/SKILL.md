@@ -124,10 +124,11 @@ No `-r` needed — the comment in the file pins the page.
 
 ```bash
 ~/.cursor/skills/confluence-writer/scripts/confluence-publish-md.sh \
-  MARKDOWN_FILE [ROOT_PAGE_ID]
+  MARKDOWN_FILE [ROOT_PAGE_ID] [--local]
 ```
 
-Wraps the env-var setup and md2conf call. See script source for defaults.
+- Wraps the env-var setup and md2conf call.
+- `--local` — convert to `.csf` only (no network). Use for the folder workflow above.
 
 ### Gotchas discovered during PLAN.md publishing
 
@@ -140,6 +141,34 @@ Wraps the env-var setup and md2conf call. See script source for defaults.
 | **Title collision** | md2conf's implicit match is by title. If a page with the same title exists elsewhere, unexpected overwrites can happen. | Always add `<!-- confluence-page-id: ... -->` to the Markdown file after the first publish. |
 | **HELP text / inline `*`** | Markdown with `*` inside metric names (e.g. `http_*`) can be interpreted as emphasis. | Wrap in backticks or escape. md2conf handles backtick-wrapped text correctly as `<code>`. |
 | **Table rendering** | md2conf handles standard GFM tables well. Pipe characters inside cells need escaping. Very wide tables may render narrow in Confluence. | Keep table cells concise; consider splitting wide tables. |
+| **Never `sed` on storage bodies** | Confluence storage format contains XML entities (`&amp;`, `&lt;`, `<ac:…>` macros). Shell tools like `sed` and `awk` mangle entities (e.g. `&amp;` back-references). | Always use **Python** or **`jq`** for programmatic body manipulation. |
+| **`.csf` artifact after `--local`** | `md2conf --local` writes a `.csf` (Confluence Storage Format) file next to the `.md` file. This is not needed after publishing. | Delete the `.csf` file after a successful curl create/update. |
+
+### Workflow: creating pages under Confluence folders
+
+md2conf's `-r` flag expects a **page** ID, but Confluence folders are not pages.
+Use `--local` to convert first, then create via curl:
+
+```bash
+# 1. Convert to storage format (no network call)
+source ~/.atlassian_config
+python3 -m md2conf PLAN.md --local --no-generated-by --ignore-invalid-url --heading-anchors
+# produces PLAN.csf
+
+# 2. Create the page under the folder via v1 REST API
+~/.cursor/skills/confluence-writer/scripts/confluence-create.sh \
+  "Page Title" PLAN.csf FOLDER_ID
+
+# 3. Pin the returned page-id in the .md file (the script prints the comment)
+#    Add: <!-- confluence-page-id: NNNN --> at the top of PLAN.md
+
+# 4. Clean up the .csf artifact
+rm PLAN.csf
+```
+
+The create script accepts folder IDs as ancestors via the v1 API (unlike v2).
+After the first publish, subsequent updates can use md2conf directly (the
+`<!-- confluence-page-id -->` comment pins the page).
 
 ---
 
@@ -152,19 +181,23 @@ md2conf is not available.
 
 ```bash
 ~/.cursor/skills/confluence-writer/scripts/confluence-create.sh \
-  "Page Title" /tmp/body.html [PARENT_PAGE_ID]
+  "Page Title" /tmp/body.html [PARENT_PAGE_ID] [--labels l1,l2] [--json]
 ```
 
-Defaults: space = personal space, parent = homepage.
+- Defaults: space = `$CONFLUENCE_SPACE_KEY`, parent = `$CONFLUENCE_HOMEPAGE_ID`.
+- `--labels l1,l2` — attach comma-separated global labels.
+- `--json` — also print the full API response.
+- Prints a ready-to-paste `<!-- confluence-page-id: ... -->` comment for pinning.
 
 ### Update a page
 
 ```bash
 ~/.cursor/skills/confluence-writer/scripts/confluence-update.sh \
-  PAGE_ID /tmp/body.html ["New Title"]
+  PAGE_ID /tmp/body.html ["New Title"] [--json]
 ```
 
-Auto-increments version number.
+- Auto-increments version number.
+- `--json` — also print the full API response.
 
 ### Preparing the body manually
 
@@ -192,8 +225,9 @@ For complex content, prefer md2conf (Method 1) over hand-rolling storage HTML.
    - Markdown source file → **md2conf** (Method 1).
    - Raw storage HTML or simple snippet → **curl scripts** (Method 2).
 4. **Write** — call the appropriate script.
-5. **Pin** — ensure `<!-- confluence-page-id: ... -->` is in the Markdown source for future updates.
-6. **Report** — show the resulting page URL to the user.
+5. **Pin** — ensure `<!-- confluence-page-id: ... -->` is in the Markdown source for future updates (the create script prints this comment).
+6. **Clean up** — delete any `.csf` artifact produced by `--local` conversion.
+7. **Report** — show the resulting page URL to the user.
 
 The page URL after creation follows the pattern:
 `https://avalara.atlassian.net/wiki/spaces/{spaceKey}/pages/{pageId}/{urlTitle}`
