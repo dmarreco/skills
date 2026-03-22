@@ -12,39 +12,18 @@
 
 ---
 
-## Delivery scope (2 sprints / 4 weeks)
+## Candidate child issues
 
-**Story budget (default):** 4–6 delivery stories + 0–2 enabler stories (adjust only if agreed).
+*Not created in Jira until agreed. Link key when filed.*
 
-### Sprint 1 (weeks 1–2)
+**Story budget (guidance):** keep the list controlled (typical: a small number of delivery stories plus optional enablers). **Do not** split by sprint here—sprint assignment is decided with the team during PI planning.
 
-| Story / enabler | Outcome | Size (S/M/L) | Notes |
-|-----------------|---------|--------------|-------|
-| | | | |
+| # | Title | Type | Size | Outcome | Notes |
+|---|-------|------|------|---------|-------|
+| 1 | | story / enabler / dependency | S / M / L / XL | | |
 
-### Sprint 2 (weeks 3–4)
-
-| Story / enabler | Outcome | Size (S/M/L) | Notes |
-|-----------------|---------|--------------|-------|
-| | | | |
-
----
-
-## Candidate child issues (Jira)
-
-*Not created in Jira until agreed. Link or key when filed.*
-
-| Title | Type (story / enabler) | Notes |
-|-------|------------------------|-------|
-| | | |
-
-### Enablers (only if they unblock delivery in-window)
-
-Examples: PoC, high-level design, low-level design, spike.
-
-| Title | Why needed | Exit criteria |
-|-------|------------|---------------|
-| | | |
+- **Type:** `story`, `enabler` (spike, HLD, PoC, LLD), or `dependency` (owned elsewhere).
+- **Size:** T-shirt (S / M / L / XL).
 
 ---
 

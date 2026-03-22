@@ -3,10 +3,12 @@ name: epic-planning
 description: >-
   Structures epic planning in the workspace under epic-planning/ using agreed
   folder names, Jira reference exports, a decisions log, and a PLAN.md with
-  specification and candidate stories. Use when the user plans a Jira epic,
-  sprint scope, child stories, enablers, or works under epic-planning/. The
-  skill file must never contain real issue keys or confidential Jira content;
-  all epic-specific data stays in the workspace repo.
+  specification and a flat candidate-child-issues table (no sprint split),
+  plus out-of-scope and references sections. Commits epic-planning changes
+  locally after plan updates. Use when the user plans a Jira epic, child
+  stories, enablers, or works under epic-planning/. The skill file must never
+  contain real issue keys or confidential Jira content; all epic-specific data
+  stays in the workspace repo.
 ---
 
 # Epic planning (agent workflow)
@@ -45,11 +47,12 @@ chmod +x ~/.cursor/skills/epic-planning/scripts/fetch-jira-epic.sh   # once
    - `~/.cursor/skills/epic-planning/templates/PLAN.template.md` → `PLAN.md`
    - `~/.cursor/skills/epic-planning/templates/DECISIONS.template.md` → `decisions.md`
 
-4. **PLAN.md** must include:
-   - **Specification:** problem, goals, non-goals, constraints.
-   - **Scope:** default **two sprints** of **two weeks** each (**four weeks** total); keep story count **controlled** (typical guidance: a small number of delivery stories plus optional enablers unless the user expands scope).
-   - **Candidate child issues / user stories** and optional **enabler** rows (PoC, HLD, LLD, spike) only when they unblock delivery inside the window.
-   - **Out of scope / follow-up** for work owned elsewhere or later epics.
+4. **PLAN.md** structure (separate concerns; **not** part of the “plan” narrative: closing sections are still required):
+   - **Body:** specification (problem, goals, non-goals, constraints) plus any technical or prior-art sections the epic needs.
+   - **End with three sections in this order:**
+     1. **Candidate child issues** — one **flat** table merging delivery intent and Jira placeholders. Columns: `#`, **Title**, **Type**, **Size**, **Outcome**, **Notes**. Types: `story`, `enabler` (spike, HLD, PoC, LLD), or `dependency`. Size: T-shirt **S / M / L / XL**. **Do not** divide by sprint; the team assigns sprints during PI planning.
+     2. **Out of scope / follow-up** — work owned elsewhere, deferred epics, dependencies (keep this section; it is **not** duplicate of the plan body).
+     3. **References** — Jira/Confluence/repo links, `epic-reference.json` pointer (keep this section; it is **not** the plan narrative).
 
 5. **decisions.md:** append dated decisions (context, decision, rationale, alternatives). Link to Jira in the workspace file only; do not paste secrets.
 
@@ -66,6 +69,14 @@ Epic children may require a **JQL** search (`/rest/api/3/search`) with the proje
 
 - Changes under `epic-planning/<epic>/` in the **workspace** repo: commit with the product repo.
 - Changes to **`~/.cursor/skills/epic-planning/`**: commit in the **public skills** repository — **generic** edits only.
+
+## Local commits (workspace `epic-planning/`)
+
+After **every** edit to `PLAN.md` or `decisions.md` under `<workspace>/epic-planning/`:
+
+1. **Commit locally** in the workspace repository (same repo as the product code). **Do not push** unless the user explicitly asks.
+2. Commit message format: `epic-planning(<EPIC-KEY>): <short description>` (use the epic’s Jira key from the folder name or PLAN header).
+3. If the workspace is not a git repo or git fails, say so and skip; do not force-init without user consent.
 
 ## Related skills
 
