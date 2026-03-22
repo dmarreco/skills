@@ -82,4 +82,5 @@ After **every** edit to `PLAN.md` or `decisions.md` under `<workspace>/epic-plan
 ## Related skills
 
 - **jira-reader** — read-only issue/comment fetch patterns.
+- **confluence-writer** — optional: publish `PLAN.md` or notes to Confluence; includes `md_to_confluence_storage.py` (Markdown subset → storage HTML) and md2conf/curl workflows.
 - **skill-maintainer** — if updating the public skills repo commit workflow.

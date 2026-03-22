@@ -199,6 +199,23 @@ md2conf is not available.
 - Auto-increments version number.
 - `--json` — also print the full API response.
 
+### Lightweight Markdown → storage (bundled script)
+
+For a **subset** of Markdown—headings (`#`–`###`), paragraphs, bullet lists,
+GFM-style tables, `---` horizontal rules, links, `**bold**`, and inline
+`` `code` ``—use the bundled converter. It prints Confluence storage HTML to
+**stdout** (no network). Pipe or redirect to a file, then pass that file to
+`confluence-create.sh` / `confluence-update.sh`:
+
+```bash
+~/.cursor/skills/confluence-writer/scripts/md_to_confluence_storage.py PLAN.md > /tmp/body.html
+~/.cursor/skills/confluence-writer/scripts/confluence-create.sh "Page Title" /tmp/body.html
+```
+
+- Requires **Python 3.9+** (`python3` on PATH).
+- Numbered list lines are rendered as paragraphs (same as the original script).
+- For full Markdown (code fences, nested lists, images, md2conf page IDs), use **Method 1 (md2conf)**.
+
 ### Preparing the body manually
 
 | Markdown | Storage format |
@@ -213,7 +230,8 @@ md2conf is not available.
 | code block | `<ac:structured-macro ac:name="code">` |
 | `[text](url)` | `<a href="url">text</a>` |
 
-For complex content, prefer md2conf (Method 1) over hand-rolling storage HTML.
+For complex content, prefer md2conf (Method 1) or `md_to_confluence_storage.py`
+for simple pages, over hand-rolling storage HTML.
 
 ---
 
@@ -222,7 +240,7 @@ For complex content, prefer md2conf (Method 1) over hand-rolling storage HTML.
 1. **Draft** — compose the page content (ask the user to review if substantial).
 2. **Confirm** — get explicit user approval before writing.
 3. **Choose method:**
-   - Markdown source file → **md2conf** (Method 1).
+   - Markdown source file → **md2conf** (Method 1), or **`md_to_confluence_storage.py`** + curl scripts for a simple subset without installing md2conf.
    - Raw storage HTML or simple snippet → **curl scripts** (Method 2).
 4. **Write** — call the appropriate script.
 5. **Pin** — ensure `<!-- confluence-page-id: ... -->` is in the Markdown source for future updates (the create script prints this comment).

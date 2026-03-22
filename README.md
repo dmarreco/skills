@@ -7,7 +7,7 @@ Personal [Agent Skills](https://docs.cursor.com) for this machine. Each skill li
 | Skill | Description |
 |-------|-------------|
 | **confluence-reader** | Read Confluence pages and spaces (REST v1/v2), CQL search. Uses `~/.atlassian_config`. Read-only. |
-| **confluence-writer** | Publish Markdown files to Confluence via md2conf (preferred) or raw storage HTML via curl. Same credentials as confluence-reader; writes only with explicit user authorization. |
+| **confluence-writer** | Publish Markdown to Confluence via md2conf (preferred), optional `md_to_confluence_storage.py` for a lightweight Markdown subset, or raw storage HTML via curl. Same credentials as confluence-reader; writes only with explicit user authorization. |
 | **epic-planning** | Structure epic planning under `epic-planning/` in a workspace: Jira exports, decisions log, `PLAN.md`, local commits. No confidential keys in the skill file. |
 | **gitlab-reader** | Read-only GitLab API v4: projects, repo files, code search, MRs, pipelines/job logs. Uses `~/.gitlab_readonly_config`. |
 | **jira-reader** | Read Jira issues, search with JQL (REST v3). Uses `~/.atlassian_config`. Read-only. |
