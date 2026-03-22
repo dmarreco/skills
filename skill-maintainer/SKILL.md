@@ -17,6 +17,10 @@ description: >-
 - **Tracked content:** skill folders (`*/SKILL.md`, `*/scripts/*`, etc.) and **[README.md](../README.md)** at repo root.
 - **Never commit:** `~/.atlassian_config`, API tokens, or any file outside this directory unless the user explicitly asks.
 
+## Project-local skills
+
+Some skills are **not** in `~/.cursor/skills`—they live under another repo’s `.cursor/skills/<name>/` (e.g. epic-planning). **Do not** expect them in this README’s table; the user commits them with that project. If one is **moved** into or out of this repo, update **[README.md](../README.md)** (project-local note + table rows) as part of the change.
+
 ## README.md (skills index)
 
 The repo root **[README.md](../README.md)** lists every skill with a one-line description. **Keep it up to date** whenever skills are added, removed, or materially renamed:
