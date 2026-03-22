@@ -29,12 +29,24 @@ BASE="${JIRA_BASE_URL%/}"
 
 mkdir -p "$OUT"
 
-# Broad field set + comments (ADF); expand changelog for history
+# Current-state fields only (no changelog, no renderedFields)
 FIELDS="summary,description,status,priority,assignee,reporter,comment,issuelinks,subtasks,labels,issuetype,parent,created,updated,fixVersions,components,creator"
-JSON_URL="${BASE}/rest/api/3/issue/${KEY}?expand=changelog,renderedFields&fields=${FIELDS}"
+JSON_URL="${BASE}/rest/api/3/issue/${KEY}?fields=${FIELDS}"
 
 curl -sS -f -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" "$JSON_URL" \
-  | python3 -m json.tool > "${OUT}/epic-reference.json.tmp"
+  | python3 -c "
+import json, sys
+
+def strip(obj):
+    if isinstance(obj, dict):
+        return {k: strip(v) for k, v in obj.items()
+                if k not in ('avatarUrls', 'self', 'expand')}
+    if isinstance(obj, list):
+        return [strip(i) for i in obj]
+    return obj
+
+json.dump(strip(json.load(sys.stdin)), sys.stdout, indent=2)
+" > "${OUT}/epic-reference.json.tmp"
 mv "${OUT}/epic-reference.json.tmp" "${OUT}/epic-reference.json"
 
 echo "Wrote ${OUT}/epic-reference.json"

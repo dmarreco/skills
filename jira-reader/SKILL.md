@@ -95,8 +95,10 @@ Then **Issue links** (inward/outward summaries + keys) and **description** as re
 
 ## Fetch epic/issue snapshot to file
 
-Exports a full issue (broad field set + comments + changelog) as pretty-printed
-JSON. Used by the **epic-planning** agent to bootstrap `epic-reference.json`.
+Exports current-state issue data (fields, comments, links, subtasks) as
+compact JSON. Used by the **epic-planning** agent to bootstrap
+`epic-reference.json`. Strips changelog, renderedFields, avatarUrls, and
+API self-links to keep the file concise (~30KB vs ~190KB).
 
 ```bash
 ~/.cursor/skills/jira-reader/scripts/fetch-jira-epic.sh ISSUE_KEY OUTPUT_DIR
@@ -106,7 +108,7 @@ JSON. Used by the **epic-planning** agent to bootstrap `epic-reference.json`.
 ```
 
 The script creates `OUTPUT_DIR` if it doesn't exist. Requires
-`full_network` permission.
+`full_network` permission and `python3` on PATH.
 
 ## Limitations
 
