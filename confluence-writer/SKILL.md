@@ -24,35 +24,61 @@ the `confluence-reader` skill instead.
 Same file as confluence-reader: `~/.atlassian_config` with:
 
 - `CONFLUENCE_URL` — e.g. `https://avalara.atlassian.net/wiki`
+- `JIRA_BASE_URL` — optional; reader-style tooling
 - `JIRA_EMAIL`
 - `JIRA_API_TOKEN`
+- `CONFLUENCE_HOMEPAGE_ID` — optional; scripts may use for default parent
+
+**md2conf** also expects these names (they may be absent from a minimal config
+that only has the vars above). If they are missing after
+`source ~/.atlassian_config`, export them inline **before** running md2conf
+(adjust `CONFLUENCE_SPACE_KEY` to your personal space):
+
+```bash
+export CONFLUENCE_DOMAIN="avalara.atlassian.net"
+export CONFLUENCE_PATH="/wiki/"
+export CONFLUENCE_USER_NAME="$JIRA_EMAIL"
+export CONFLUENCE_API_KEY="$JIRA_API_TOKEN"
+export CONFLUENCE_SPACE_KEY='~SPACEKEYHERE'
+```
+
 - `CONFLUENCE_SPACE_KEY` — user's personal space key (e.g. `~7120203c...`)
-- `CONFLUENCE_DOMAIN` — e.g. `avalara.atlassian.net` (used by md2conf)
-- `CONFLUENCE_PATH` — typically `/wiki/` (used by md2conf)
+- `CONFLUENCE_DOMAIN` — e.g. `avalara.atlassian.net` (md2conf)
+- `CONFLUENCE_PATH` — typically `/wiki/` (md2conf)
 - `CONFLUENCE_USER_NAME` — same value as `JIRA_EMAIL` (md2conf alias)
 - `CONFLUENCE_API_KEY` — same value as `JIRA_API_TOKEN` (md2conf alias)
 
 All user-specific values (space key, domain, email, token) live in
 `~/.atlassian_config` only — **never hardcode** them in skill files or scripts.
 
-Always `source ~/.atlassian_config` before `curl`. Never print or log the token.
+Always `source ~/.atlassian_config` before `curl` or md2conf. Never print or log the token.
 
 ### markdown-to-confluence (md2conf) — preferred for Markdown files
 
-Install once (requires **Python >= 3.10**; check with `python3 --version`):
+Install once (requires **Python >= 3.10**; check with the interpreter you will
+use for md2conf):
 
 ```bash
 pip install markdown-to-confluence
 ```
 
-After install, the CLI is available as `python3 -m md2conf`. If the system
-Python is too old (e.g. macOS ships 3.9), the user-installed binary may live
-under a different path (e.g. `/Library/Developer/CommandLineTools/usr/bin/python3`).
-Verify with:
+On **macOS**, `pip3 install markdown-to-confluence` often installs into the
+**CommandLineTools** Python user site-packages
+(`…/CommandLineTools/usr/bin/python3`), while plain `python3` on `PATH` may
+point to a **different** interpreter that does not have the package. Prefer
+installing with the same Python you will run:
 
 ```bash
-python3 -m md2conf --version 2>/dev/null || \
-  /Library/Developer/CommandLineTools/usr/bin/python3 -m md2conf --version
+/Library/Developer/CommandLineTools/usr/bin/python3 -m pip install --user markdown-to-confluence
+```
+
+After install, the CLI is `python3 -m md2conf` **only** for the Python that
+received the package. Verify by trying **CommandLineTools first**, then
+falling back to `python3`:
+
+```bash
+/Library/Developer/CommandLineTools/usr/bin/python3 -m md2conf --version 2>/dev/null || \
+  python3 -m md2conf --version
 ```
 
 ## Shell execution
@@ -75,9 +101,26 @@ parent unless the user specifies otherwise.
 ### Environment variables
 
 md2conf reads its own env var names (`CONFLUENCE_DOMAIN`, `CONFLUENCE_PATH`,
-`CONFLUENCE_USER_NAME`, `CONFLUENCE_API_KEY`, `CONFLUENCE_SPACE_KEY`). These
-should all be set in `~/.atlassian_config` alongside the Jira/Confluence-reader
-vars. After `source ~/.atlassian_config`, md2conf picks them up automatically.
+`CONFLUENCE_USER_NAME`, `CONFLUENCE_API_KEY`, `CONFLUENCE_SPACE_KEY`). Put them
+in `~/.atlassian_config` if possible. If they are **not** defined there, use
+the export block in **Prerequisites → Credentials** (after
+`source ~/.atlassian_config`) so md2conf sees them.
+
+### Python interpreter for md2conf (macOS)
+
+Prefer the same interpreter that has `markdown-to-confluence` installed. On
+macOS this is often the CommandLineTools Python. Resolve once per shell:
+
+```bash
+if /Library/Developer/CommandLineTools/usr/bin/python3 -m md2conf --version &>/dev/null; then
+  MD2CONF_PYTHON=/Library/Developer/CommandLineTools/usr/bin/python3
+else
+  MD2CONF_PYTHON=python3
+fi
+```
+
+Override explicitly when needed: `MD2CONF_PYTHON=/path/to/python3` before the
+commands below.
 
 ### Create / update a page
 
@@ -92,12 +135,16 @@ or by a **page-id comment** in the file (explicit, preferred after first publish
 
 ```bash
 source ~/.atlassian_config
-python3 -m md2conf PLAN.md \
+# Optional: set MD2CONF_PYTHON per "Python interpreter for md2conf" above
+"${MD2CONF_PYTHON:-/Library/Developer/CommandLineTools/usr/bin/python3}" -m md2conf PLAN.md \
   -r ROOT_PAGE_ID \
   --no-generated-by \
   --ignore-invalid-url \
   --heading-anchors
 ```
+
+If that default Python lacks md2conf, export `MD2CONF_PYTHON=python3` (or the
+path from `pip show markdown-to-confluence` → `Location`) and re-run.
 
 - `-r ROOT_PAGE_ID` — parent/root page under which the new page is created.
   For a Confluence **folder**, use the folder's **parent page ID** (see gotchas).
@@ -112,7 +159,7 @@ into the source `.md` file. Subsequent runs update the same page.
 
 ```bash
 source ~/.atlassian_config
-python3 -m md2conf PLAN.md \
+"${MD2CONF_PYTHON:-/Library/Developer/CommandLineTools/usr/bin/python3}" -m md2conf PLAN.md \
   --no-generated-by \
   --ignore-invalid-url \
   --heading-anchors
@@ -136,7 +183,7 @@ No `-r` needed — the comment in the file pins the page.
 |-------|--------|------------|
 | **Confluence folders are not pages** | Folders have a numeric ID visible in the URL, but the v2 pages API returns 404 for folder IDs. md2conf's `-r` flag expects a **page** ID, not a folder ID. | Use the folder's `parentId` (a real page) as the root, or create the page under the folder via curl first, then pin with `<!-- confluence-page-id -->`. You can find a folder's `parentId` via `GET /api/v2/folders/{folderId}`. |
 | **Relative links break** | Markdown files often have relative paths (`../../data-ingest-service/...`) that don't map to Confluence. | Use `--ignore-invalid-url` to avoid errors; review links in Confluence afterwards. |
-| **`python3` version mismatch** | `markdown-to-confluence` requires Python >= 3.10. macOS default may be 3.9. `pip install` goes to user site-packages under the system Python, but `python3 -m md2conf` may resolve to a different binary. | Use the full path to the Python that `pip install` used (check with `pip show markdown-to-confluence` → `Location`). |
+| **`python3` version mismatch** | `markdown-to-confluence` requires Python >= 3.10. On macOS, `pip3 install` often targets **CommandLineTools** `…/usr/bin/python3`, while `python3` may be another binary without the package. | Run md2conf with `/Library/Developer/CommandLineTools/usr/bin/python3 -m md2conf`, or set `MD2CONF_PYTHON` to the interpreter shown by `pip show markdown-to-confluence` → `Location`. |
 | **Personal space key** | Tilde-prefixed space keys (`~712020...`) work but look odd. Ensure you pass the full key including `~` in quotes. | Always quote the space key in shell. |
 | **Title collision** | md2conf's implicit match is by title. If a page with the same title exists elsewhere, unexpected overwrites can happen. | Always add `<!-- confluence-page-id: ... -->` to the Markdown file after the first publish. |
 | **HELP text / inline `*`** | Markdown with `*` inside metric names (e.g. `http_*`) can be interpreted as emphasis. | Wrap in backticks or escape. md2conf handles backtick-wrapped text correctly as `<code>`. |
@@ -152,7 +199,7 @@ Use `--local` to convert first, then create via curl:
 ```bash
 # 1. Convert to storage format (no network call)
 source ~/.atlassian_config
-python3 -m md2conf PLAN.md --local --no-generated-by --ignore-invalid-url --heading-anchors
+"${MD2CONF_PYTHON:-/Library/Developer/CommandLineTools/usr/bin/python3}" -m md2conf PLAN.md --local --no-generated-by --ignore-invalid-url --heading-anchors
 # produces PLAN.csf
 
 # 2. Create the page under the folder via v1 REST API

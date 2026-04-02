@@ -10,8 +10,11 @@
 #          Follow up with confluence-create.sh to publish the .csf file.
 #
 # Requires:
-#   - ~/.atlassian_config with CONFLUENCE_URL, JIRA_EMAIL, JIRA_API_TOKEN
-#   - pip install markdown-to-confluence (Python >= 3.10)
+#   - ~/.atlassian_config with JIRA_EMAIL, JIRA_API_TOKEN; md2conf env vars
+#     (CONFLUENCE_DOMAIN, CONFLUENCE_PATH, CONFLUENCE_USER_NAME, CONFLUENCE_API_KEY,
+#     CONFLUENCE_SPACE_KEY) when not using --local
+#   - markdown-to-confluence installed on the Python used below (often macOS
+#     CommandLineTools: /Library/Developer/CommandLineTools/usr/bin/python3)
 set -euo pipefail
 
 CONFIG="${HOME}/.atlassian_config"
@@ -62,9 +65,10 @@ if [[ "$LOCAL_ONLY" == false ]]; then
   export CONFLUENCE_DOMAIN CONFLUENCE_PATH CONFLUENCE_USER_NAME CONFLUENCE_API_KEY CONFLUENCE_SPACE_KEY
 fi
 
-# Find a working python3 with md2conf
+# Find a working python3 with md2conf (prefer macOS CommandLineTools — matches
+# typical pip3 install location; fall back to python3 on PATH)
 PYTHON=""
-for candidate in python3 /Library/Developer/CommandLineTools/usr/bin/python3; do
+for candidate in /Library/Developer/CommandLineTools/usr/bin/python3 python3; do
   if $candidate -m md2conf --version &>/dev/null; then
     PYTHON="$candidate"
     break
