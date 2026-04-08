@@ -1,0 +1,18 @@
+{
+  "dev": {
+    "name": "cip-aws-dev-us-west-2-gamma-loki",
+    "id": 870
+  },
+  "qa": {
+    "name": "cip-aws-qa-us-west-2-gamma-loki",
+    "id": 869
+  },
+  "sbx": {
+    "name": "cip-aws-sbx-eu-central-1-zeta-loki",
+    "id": 879
+  },
+  "prd": {
+    "name": "cip-aws-prd-eu-central-1-zeta-loki",
+    "id": 885
+  }
+}
