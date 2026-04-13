@@ -10,8 +10,10 @@ Personal [Agent Skills](https://docs.cursor.com) for this machine. Each skill li
 | **confluence-writer** | Publish Markdown to Confluence via md2conf (preferred), optional `md_to_confluence_storage.py` for a lightweight Markdown subset, or raw storage HTML via curl. Same credentials as confluence-reader; writes only with explicit user authorization. |
 | **gitlab-reader** | Read-only GitLab API v4: projects, repo files, code search, MRs, pipelines/job logs. Uses `~/.gitlab_readonly_config`. |
 | **grafana-log-reader** | Query Grafana Loki for logs via LogQL across multiple environment datasources (dev, qa, sbx, prd). Saves output to temp files for agent analysis. Uses `~/.grafana_config`. |
+| **grill-me** | Interview the user relentlessly about a plan or design until reaching shared understanding. *Credit: [mattpocock/skills](https://github.com/mattpocock/skills) (MIT)* |
 | **jira-reader** | Read Jira issues, search with JQL (REST v3), fetch epic snapshots. Uses `~/.atlassian_config`. Read-only. |
 | **skill-maintainer** | Workflow to stage, commit, and push changes in this repo, and to keep this README aligned with the skills list. |
+| **write-a-skill** | Create new agent skills with proper structure, progressive disclosure, and bundled resources. *Credit: [mattpocock/skills](https://github.com/mattpocock/skills) (MIT)* |
 
 **Project-local skills and agents** (versioned with their respective projects, not this repo):
 
@@ -79,6 +81,8 @@ Create a **Viewer** service account at Grafana → Administration → Service Ac
 ├── confluence-writer/
 ├── gitlab-reader/
 ├── grafana-log-reader/
+├── grill-me/
 ├── jira-reader/
-└── skill-maintainer/
+├── skill-maintainer/
+└── write-a-skill/
 ```

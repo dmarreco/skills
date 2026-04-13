@@ -1,6 +1,8 @@
 ---
 name: write-a-skill
-description: Create new agent skills with proper structure, progressive disclosure, and bundled resources. Use when user wants to create, write, or build a new skill.
+description: >-
+  Create new agent skills with proper structure, progressive disclosure, and
+  bundled resources. Use when user wants to create, write, or build a new skill.
 ---
 
 # Writing Skills
@@ -85,8 +87,6 @@ Extract text and tables from PDF files, fill forms, merge documents. Use when wo
 Helps with documents.
 ```
 
-The bad example gives your agent no way to distinguish this from other document skills.
-
 ## When to Add Scripts
 
 Add utility scripts when:
@@ -115,3 +115,8 @@ After drafting, verify:
 - [ ] Consistent terminology
 - [ ] Concrete examples included
 - [ ] References one level deep
+
+## Credits and License
+
+Original author: **Matt Pocock** ([mattpocock/skills](https://github.com/mattpocock/skills))
+License: [MIT](https://github.com/mattpocock/skills/blob/main/LICENSE)
