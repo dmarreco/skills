@@ -20,6 +20,8 @@ It does NOT decide:
 - What to look for in code or diffs
 - How to present or act on the results
 
+Project rules (`.cursor/rules/`) may provide this context — e.g. instance hostname, repository paths, or MR conventions.
+
 ## Prerequisites
 
 Shell exports in `~/.gitlab_readonly_config`:

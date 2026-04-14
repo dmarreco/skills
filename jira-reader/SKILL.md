@@ -19,6 +19,8 @@ It does NOT decide:
 - What JQL queries to run
 - How to present or act on the results
 
+Project rules (`.cursor/rules/`) may provide this context — e.g. project keys, team names, JQL patterns, or story conventions.
+
 ## Prerequisites
 
 Credentials are shell exports in `~/.atlassian_config`:

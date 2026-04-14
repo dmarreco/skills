@@ -19,6 +19,8 @@ It does NOT decide:
 - What LogQL query to run
 - How to interpret or act on the results
 
+Project rules (`.cursor/rules/`) may provide this context — e.g. datasource-to-environment mappings, namespaces, or common LogQL patterns.
+
 ## Prerequisites
 
 Credentials are shell exports in `~/.grafana_config`:
