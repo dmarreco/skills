@@ -1,14 +1,23 @@
 ---
 name: grafana-log-reader
 description: >-
-  Queries Grafana Loki for logs via LogQL across multiple environment
-  datasources (dev, qa, sbx, prd). Saves output to temp files for agent
-  analysis. Use when the user asks to fetch, query, check, or read logs
-  from Grafana, Loki, or mentions LogQL, container logs, error logs, or
-  log analysis.
+  Queries Grafana Loki for logs via LogQL through the Grafana datasource
+  proxy. Saves output to temp files for agent analysis. Use when the user
+  asks to fetch, query, check, or read logs from Grafana, Loki, or mentions
+  LogQL, container logs, error logs, or log analysis.
 ---
 
 # Grafana Log Reader
+
+## Role
+
+This skill handles the **technical mechanics** of querying Grafana Loki:
+authentication, API calls, response parsing, and saving output to files.
+
+It does NOT decide:
+- Which datasource to query (provide via `--datasource`)
+- What LogQL query to run
+- How to interpret or act on the results
 
 ## Prerequisites
 
@@ -23,57 +32,11 @@ Requires `python3` on PATH (for log extraction).
 
 When running `curl` against Grafana, use `required_permissions: ["full_network"]`.
 
-## Datasource map
-
-The file [`datasources.json`](datasources.json) maps environment aliases to Loki datasource names and numeric IDs. The `id` fields start as `null` and are populated by the discovery script.
-
-Environments: `dev`, `qa`, `sbx`, `prd`. Note that `sbx` and `sbx-b` share the same Loki datasource — they are differentiated by namespace in the LogQL query (e.g. `namespace="elr"` for sbx, `namespace="slr-sbx-b"` for sbx-b).
-
-## Workflow
-
-### Step 1 — Validate
-
-1. Check `~/.grafana_config` exists and has `GRAFANA_URL` and `GRAFANA_TOKEN`.
-2. Check `datasources.json` — if any needed environment has `"id": null`, run discovery first:
-   ```bash
-   ~/.cursor/skills/grafana-log-reader/scripts/grafana-discover-datasources.sh
-   ```
-
-### Step 2 — Query
-
-Run the query script with the environment and LogQL string:
-
-```bash
-~/.cursor/skills/grafana-log-reader/scripts/grafana-query-logs.sh \
-  --env qa \
-  '{container="data-ingest-service", namespace="elr"} | json | level = `ERROR` | line_format `{{.log}}`' \
-  --since 1h \
-  --limit 1000
-```
-
-The script prints the output directory path, line count, and file sizes.
-
-### Step 3 — Analyze
-
-Read `logs.txt` selectively — **do not load the entire file into context**:
-
-- Use `Read` with `offset` and `limit` for head/tail
-- Use `Grep` to search for patterns within the file
-- Read `query-info.txt` to confirm which query produced the output
-
-### Step 4 — Report
-
-Present a concise summary to the user:
-- Total log lines found
-- Time range covered
-- Key patterns (e.g. top error messages, frequency, affected components)
-- The output file path so the user can inspect raw data if needed
-
 ## Scripts
 
 ### `grafana-discover-datasources.sh`
 
-Discovers Loki datasource numeric IDs and updates `datasources.json`.
+Lists all Loki datasources available in the Grafana instance.
 
 ```bash
 ~/.cursor/skills/grafana-log-reader/scripts/grafana-discover-datasources.sh
@@ -81,29 +44,29 @@ Discovers Loki datasource numeric IDs and updates `datasources.json`.
 
 - Calls `GET /api/datasources` with Bearer token
 - Filters for `type == "loki"`
-- Matches each entry in `datasources.json` by name and fills in the numeric `id`
-- Prints all discovered Loki datasources
-- Warns if any configured name is not found
+- Prints each datasource's numeric `id`, `name`, and `uid`
+
+Use this to find the datasource name or ID to pass to the query script.
 
 ### `grafana-query-logs.sh`
 
-Main query script.
+Queries Loki and saves results to a temp directory.
 
 ```
-grafana-query-logs.sh --env ENV "LOGQL_QUERY" [--since DURATION] [--limit N]
+grafana-query-logs.sh --datasource NAME_OR_ID "LOGQL_QUERY" [--since DURATION] [--limit N]
 ```
 
 | Flag | Required | Default | Description |
 |------|----------|---------|-------------|
-| `--env` | yes | — | Environment alias from `datasources.json` |
+| `--datasource` | yes | — | Loki datasource name or numeric ID |
 | query | yes | — | LogQL query string |
 | `--since` | no | `1h` | Time window: `30m`, `1h`, `6h`, `24h`, etc. |
 | `--limit` | no | `1000` | Max log entries (Loki hard cap: 5000) |
 
-Output goes to `/tmp/grafana-logs/{env}-{hash}-{timestamp}/`:
+Output goes to `/tmp/grafana-logs/{datasource_hash}-{query_hash}-{timestamp}/`:
 - `raw-response.json` — full Loki API response
 - `logs.txt` — human-readable `YYYY-MM-DD HH:MM:SS.mmm | log_line`
-- `query-info.txt` — metadata (env, datasource, query, time range, line count)
+- `query-info.txt` — metadata (datasource, query, time range, line count)
 
 Auto-cleans directories older than 7 days.
 
@@ -120,13 +83,13 @@ Format: `YYYY-MM-DD HH:MM:SS.mmm | log_line`
 ## Output structure
 
 ```
-/tmp/grafana-logs/qa-a1b2c3-20260408T143022/
+/tmp/grafana-logs/a1b2c3-d4e5f6-20260408T143022/
 ├── query-info.txt
 ├── raw-response.json
 └── logs.txt
 ```
 
-The directory name encodes the environment, a short MD5 hash of the query, and the execution timestamp — so different queries and repeat runs never overwrite each other.
+The directory name uses short hashes of the datasource and query plus the execution timestamp — so different queries never overwrite each other.
 
 ## Limitations
 

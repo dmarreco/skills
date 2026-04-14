@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 # Query Grafana Loki logs via the datasource proxy and save to temp files.
-# Usage: grafana-query-logs.sh --env ENV "LOGQL_QUERY" [--since DURATION] [--limit N]
-# Requires ~/.grafana_config and datasources.json with populated IDs.
+# Usage: grafana-query-logs.sh --datasource NAME_OR_ID "LOGQL_QUERY" [--since DURATION] [--limit N]
+# Requires ~/.grafana_config.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SKILL_DIR="$(dirname "$SCRIPT_DIR")"
-DS_FILE="${SKILL_DIR}/datasources.json"
 EXTRACT_SCRIPT="${SCRIPT_DIR}/extract-log-lines.py"
 BASE_OUTPUT_DIR="/tmp/grafana-logs"
 
@@ -24,17 +22,17 @@ if [[ -z "${GRAFANA_URL:-}" || -z "${GRAFANA_TOKEN:-}" ]]; then
 fi
 
 # --- Parse arguments ---
-ENV=""
+DATASOURCE=""
 QUERY=""
 SINCE="1h"
 LIMIT="1000"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --env)    ENV="$2";   shift 2 ;;
-    --since)  SINCE="$2"; shift 2 ;;
-    --limit)  LIMIT="$2"; shift 2 ;;
-    -*)       echo "Unknown flag: $1" >&2; exit 1 ;;
+    --datasource) DATASOURCE="$2"; shift 2 ;;
+    --since)      SINCE="$2";      shift 2 ;;
+    --limit)      LIMIT="$2";      shift 2 ;;
+    -*)           echo "Unknown flag: $1" >&2; exit 1 ;;
     *)
       if [[ -z "$QUERY" ]]; then
         QUERY="$1"; shift
@@ -45,44 +43,36 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$ENV" ]]; then
-  echo "ERROR: --env is required (e.g. --env qa)" >&2
+if [[ -z "$DATASOURCE" ]]; then
+  echo "ERROR: --datasource is required (name or numeric ID)" >&2
+  echo "Usage: $0 --datasource NAME_OR_ID \"LOGQL_QUERY\" [--since DURATION] [--limit N]" >&2
   exit 1
 fi
 if [[ -z "$QUERY" ]]; then
   echo "ERROR: LogQL query string is required" >&2
-  echo "Usage: $0 --env ENV \"LOGQL_QUERY\" [--since DURATION] [--limit N]" >&2
+  echo "Usage: $0 --datasource NAME_OR_ID \"LOGQL_QUERY\" [--since DURATION] [--limit N]" >&2
   exit 1
 fi
 
-# --- Resolve datasource ID ---
-if [[ ! -f "$DS_FILE" ]]; then
-  echo "Missing ${DS_FILE} — run grafana-discover-datasources.sh first" >&2
-  exit 2
+# --- Resolve datasource: if numeric use as ID, otherwise resolve name to ID ---
+BASE="${GRAFANA_URL%/}"
+
+if [[ "$DATASOURCE" =~ ^[0-9]+$ ]]; then
+  DS_ID="$DATASOURCE"
+  DS_LABEL="$DATASOURCE"
+else
+  DS_ID=$(curl -sS -f \
+    -H "Authorization: Bearer ${GRAFANA_TOKEN}" \
+    "${BASE}/api/datasources/name/${DATASOURCE}" 2>/dev/null \
+    | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])' 2>/dev/null) || true
+
+  if [[ -z "$DS_ID" ]]; then
+    echo "ERROR: could not resolve datasource name '${DATASOURCE}'" >&2
+    echo "Run grafana-discover-datasources.sh to list available datasources." >&2
+    exit 1
+  fi
+  DS_LABEL="$DATASOURCE"
 fi
-
-read -r DS_ID DS_NAME < <(python3 - "$DS_FILE" "$ENV" <<'PYEOF'
-import json, sys
-
-ds_file, env = sys.argv[1], sys.argv[2]
-with open(ds_file) as f:
-    cfg = json.load(f)
-
-if env not in cfg:
-    avail = ", ".join(sorted(cfg.keys()))
-    print(f'ERROR: environment "{env}" not found in datasources.json', file=sys.stderr)
-    print(f'Available: {avail}', file=sys.stderr)
-    sys.exit(1)
-
-entry = cfg[env]
-ds_id = entry.get("id")
-if ds_id is None:
-    print(f'ERROR: datasource ID for "{env}" is null — run grafana-discover-datasources.sh', file=sys.stderr)
-    sys.exit(1)
-
-print(ds_id, entry["name"])
-PYEOF
-)
 
 # --- Compute time range ---
 END_NS=$(python3 -c 'import time; print(int(time.time() * 1e9))')
@@ -102,9 +92,10 @@ PYEOF
 )
 
 # --- Build output directory ---
+DS_HASH=$(printf '%s' "$DS_LABEL" | md5sum | head -c 6 2>/dev/null || printf '%s' "$DS_LABEL" | md5 | head -c 6)
 QUERY_HASH=$(printf '%s' "$QUERY" | md5sum | head -c 6 2>/dev/null || printf '%s' "$QUERY" | md5 | head -c 6)
 TIMESTAMP=$(date +%Y%m%dT%H%M%S)
-OUTPUT_DIR="${BASE_OUTPUT_DIR}/${ENV}-${QUERY_HASH}-${TIMESTAMP}"
+OUTPUT_DIR="${BASE_OUTPUT_DIR}/${DS_HASH}-${QUERY_HASH}-${TIMESTAMP}"
 mkdir -p "$OUTPUT_DIR"
 
 # --- Cleanup old results (>7 days) ---
@@ -113,7 +104,6 @@ if [[ -d "$BASE_OUTPUT_DIR" ]]; then
 fi
 
 # --- Execute query ---
-BASE="${GRAFANA_URL%/}"
 PROXY_URL="${BASE}/api/datasources/proxy/${DS_ID}/loki/api/v1/query_range"
 
 HTTP_RESPONSE=$(curl -sS -w "\n%{http_code}" -G \
@@ -144,8 +134,8 @@ LINE_COUNT=$(wc -l < "${OUTPUT_DIR}/logs.txt" | tr -d ' ')
 
 # --- Write query-info.txt ---
 cat > "${OUTPUT_DIR}/query-info.txt" <<INFO
-env: ${ENV}
-datasource: ${DS_NAME}
+datasource: ${DS_LABEL}
+datasource_id: ${DS_ID}
 query: ${QUERY}
 since: ${SINCE}
 limit: ${LIMIT}

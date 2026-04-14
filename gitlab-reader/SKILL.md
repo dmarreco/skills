@@ -1,20 +1,30 @@
 ---
 name: gitlab-reader
 description: >-
-  Reads corporate GitLab (self-hosted) projects, repository files, code search,
-  merge requests, and CI/CD pipelines using the GitLab REST API v4 and
-  credentials in ~/.gitlab_readonly_config. Read-only; never push, create, or
-  mutate. Use when the user asks about GitLab repos, MRs, pipelines, or code
-  under scm.platform or their GitLab namespace.
+  Reads GitLab projects, repository files, code search, merge requests, and
+  CI/CD pipelines using the GitLab REST API v4 and credentials in
+  ~/.gitlab_readonly_config. Works with self-hosted or cloud instances.
+  Read-only; never push, create, or mutate. Use when the user asks about
+  GitLab repos, MRs, pipelines, or code in their GitLab namespace.
 ---
 
 # GitLab reader
+
+## Role
+
+This skill handles the **technical mechanics** of reading GitLab data:
+authentication, REST API calls for projects, files, MRs, pipelines.
+
+It does NOT decide:
+- Which projects or MRs are relevant
+- What to look for in code or diffs
+- How to present or act on the results
 
 ## Prerequisites
 
 Shell exports in `~/.gitlab_readonly_config`:
 
-- `GITLAB_BASE_PROJECT_URL` — base URL including your namespace path, e.g. `https://scm.platform.us-west-2.avalara.io/daniel.marreco`
+- `GITLAB_BASE_PROJECT_URL` — base URL including your namespace path, e.g. `https://gitlab.example.com/your-username`
 - `GITLAB_READONLY_TOKEN` — personal access token with read scopes
 
 Derive the GitLab instance root (no API path) from the base project URL:
@@ -164,14 +174,6 @@ JOB_ID=67890
 curl -sS -H "PRIVATE-TOKEN: ${GITLAB_READONLY_TOKEN}" \
   "${GITLAB_URL}/api/v4/projects/${ENC}/jobs/${JOB_ID}/trace"
 ```
-
-## Present results
-
-- Projects: table of `name`, `path_with_namespace`, `id`, `web_url`.
-- Tree: indented paths or bullet list.
-- Files: show raw text; truncate very large files with a note.
-- MRs: title, state, author, source/target branches, link; summarize `changes` for small diffs.
-- Pipelines: status, ref, SHA, web URL; job names and stages from jobs list.
 
 ## Limitations
 

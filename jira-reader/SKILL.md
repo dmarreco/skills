@@ -1,20 +1,29 @@
 ---
 name: jira-reader
 description: >-
-  Fetches and reads Jira issues from Avalara's Atlassian Cloud instance using
-  REST API v3 and credentials in ~/.atlassian_config. Use when the user asks
-  about Jira issues, tickets, epics, stories, sprints, JQL, or references issue
-  keys like ELR-, FRMC-, or browse URLs on avalara.atlassian.net. Read-only;
-  never create, update, or transition issues.
+  Fetches and reads Jira issues from a Jira Cloud instance using REST API v3
+  and credentials in ~/.atlassian_config. Use when the user asks about Jira
+  issues, tickets, epics, stories, sprints, JQL, or references Jira issue
+  keys or browse URLs. Read-only; never create, update, or transition issues.
 ---
 
 # Jira reader
+
+## Role
+
+This skill handles the **technical mechanics** of reading Jira issues:
+authentication, REST API calls, JQL search, ADF parsing.
+
+It does NOT decide:
+- Which projects or issues are relevant
+- What JQL queries to run
+- How to present or act on the results
 
 ## Prerequisites
 
 Credentials are shell exports in `~/.atlassian_config`:
 
-- `JIRA_BASE_URL` — e.g. `https://avalara.atlassian.net`
+- `JIRA_BASE_URL` — e.g. `https://your-site.atlassian.net`
 - `JIRA_EMAIL`
 - `JIRA_API_TOKEN`
 
@@ -29,7 +38,7 @@ When running `curl` against Atlassian from the agent, use **network** permission
 **Preferred:** run the helper script (limits fields, keeps responses small):
 
 ```bash
-~/.cursor/skills/jira-reader/scripts/jira-fetch.sh ELR-32817
+~/.cursor/skills/jira-reader/scripts/jira-fetch.sh PROJECT-123
 ```
 
 **Manual:**
@@ -41,7 +50,7 @@ curl -s -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
   "${JIRA_BASE_URL}/rest/api/3/issue/ISSUE_KEY?fields=${FIELDS}"
 ```
 
-Replace `ISSUE_KEY` with the key (e.g. `ELR-32817`). Omitting `fields` can return very large JSON (200KB+).
+Replace `ISSUE_KEY` with the actual key (e.g. `PROJECT-123`). Omitting `fields` can return very large JSON (200KB+).
 
 ## Search with JQL
 
@@ -54,12 +63,12 @@ curl -s -G -u "${JIRA_EMAIL}:${JIRA_API_TOKEN}" \
   --data-urlencode "maxResults=50"
 ```
 
-Useful JQL examples:
+Useful JQL patterns:
 
-- Project: `project = ELR ORDER BY updated DESC`
-- Epic link field (classic): `"Epic Link" = ELR-32817` (field name may vary by project)
-- Labels: `labels = FrancePDP AND project = ELR`
-- Open work: `project = ELR AND statusCategory != Done`
+- Project: `project = PROJ ORDER BY updated DESC`
+- Epic link field (classic): `"Epic Link" = PROJ-123` (field name may vary by project)
+- Labels: `labels = "some-label" AND project = PROJ`
+- Open work: `project = PROJ AND statusCategory != Done`
 - Assignee: `assignee = currentUser()`
 
 ## Parse description (ADF)
@@ -74,36 +83,16 @@ Issue `fields.description` is **Atlassian Document Format** (JSON). To summarize
 
 A one-off Python snippet is fine for flattening ADF when needed.
 
-## Present results
-
-Use a short table plus narrative:
-
-| Field | Value |
-|-------|--------|
-| Key | … |
-| Summary | … |
-| Type | … |
-| Status | … |
-| Priority | … |
-| Assignee | … |
-| Reporter | … |
-| Labels | … |
-| Parent | parent key — parent summary (if any) |
-| Created / Updated | … |
-
-Then **Issue links** (inward/outward summaries + keys) and **description** as readable markdown.
-
 ## Fetch epic/issue snapshot to file
 
 Exports current-state issue data (fields, comments, links, subtasks) as
-compact JSON. Used by the **epic-planning** agent to bootstrap
-`epic-reference.json`. Strips changelog, renderedFields, avatarUrls, and
-API self-links to keep the file concise (~30KB vs ~190KB).
+compact JSON. Strips changelog, renderedFields, avatarUrls, and API
+self-links to keep the file concise (~30KB vs ~190KB).
 
 ```bash
 ~/.cursor/skills/jira-reader/scripts/fetch-jira-epic.sh ISSUE_KEY OUTPUT_DIR
 # Example:
-~/.cursor/skills/jira-reader/scripts/fetch-jira-epic.sh ELR-32817 ./ELR-32817-My-Epic
+~/.cursor/skills/jira-reader/scripts/fetch-jira-epic.sh PROJECT-123 ./PROJECT-123-snapshot
 # → writes OUTPUT_DIR/epic-reference.json
 ```
 
